@@ -26,76 +26,76 @@ jobs:
         port: ${{ secrets.VPS_PORT || 22 }}  # Default to port 22 if not specified
         timeout: 30s
         script: |
-          echo "🚀 Successfully connected to server!"
+          echo "Successfully connected to server!"
           echo "================================="
           
           # Display server information
-          echo "📅 Current date and time:"
+          echo "Current date and time:"
           date
           echo ""
           
-          echo "💻 Server details:"
+          echo "Server details:"
           echo "Hostname: $(hostname)"
           echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
           echo "Kernel: $(uname -r)"
           echo "Architecture: $(uname -m)"
           echo ""
           
-          echo "💾 Disk usage:"
+          echo "Disk usage:"
           df -h / | tail -1 | awk '{print "Used: "$3" | Available: "$4" | Usage: "$5}'
           echo ""
           
-          echo "🧠 Memory usage:"
+          echo "Memory usage:"
           free -h | grep Mem | awk '{print "Total: "$2" | Used: "$3" | Available: "$7}'
           echo ""
           
-          echo "⏱️  System uptime:"
+          echo "System uptime:"
           uptime -p
           echo ""
           
-          echo "👤 Current user and working directory:"
+          echo "Current user and working directory:"
           echo "User: $(whoami)"
           echo "Home: $HOME"
           echo "Current directory: $(pwd)"
           echo ""
           
-          echo "🌐 Network connectivity test:"
+          echo "Network connectivity test:"
           if ping -c 1 google.com > /dev/null 2>&1; then
-            echo "✅ Internet connection: Available"
+            echo "Internet connection: Available"
           else
-            echo "❌ Internet connection: Not available"
+            echo "Internet connection: Not available"
           fi
           echo ""
           
-          echo "📁 Directory permissions test:"
+          echo "Directory permissions test:"
           if [ -w "$HOME" ]; then
-            echo "✅ Home directory: Writable"
+            echo "Home directory: Writable"
           else
-            echo "❌ Home directory: Not writable"
+            echo "Home directory: Not writable"
           fi
           
           if [ -w "/var/www/html" ]; then
-            echo "✅ /var/www/html: Writable"
+            echo "/var/www/html: Writable"
           elif [ -d "/var/www/html" ]; then
-            echo "⚠️  /var/www/html: Exists but not writable"
+            echo "/var/www/html: Exists but not writable"
           else
-            echo "ℹ️  /var/www/html: Does not exist"
+            echo "/var/www/html: Does not exist"
           fi
           echo ""
           
-          echo "🔧 Available tools check:"
+          echo "Available tools check:"
           tools=("git" "node" "npm" "python3" "pip3" "docker" "nginx" "apache2")
           for tool in "${tools[@]}"; do
             if command -v "$tool" > /dev/null 2>&1; then
               version=$(command -v "$tool" > /dev/null && "$tool" --version 2>/dev/null | head -1 || echo "version unknown")
-              echo "✅ $tool: Available ($version)"
+              echo "$tool: Available ($version)"
             else
-              echo "❌ $tool: Not available"
+              echo "$tool: Not available"
             fi
           done
           echo ""
           
-          echo "🚀 Server access test completed successfully!"
+          echo "Server access test completed successfully!"
           echo "================================="
 
   test-file-operations:
@@ -112,7 +112,7 @@ jobs:
         port: ${{ secrets.VPS_PORT || 22 }}
         timeout: 30s
         script: |
-          echo "📁 Testing file operations..."
+          echo "Testing file operations..."
           echo "================================="
           
           # Create a test directory
@@ -128,11 +128,11 @@ jobs:
           # Test file permissions
           echo "Testing file operations..."
           if [ -f "test-file.txt" ]; then
-            echo "✅ File creation: Success"
-            echo "📄 File content:"
+            echo "File creation: Success"
+            echo "File content:"
             cat test-file.txt
           else
-            echo "❌ File creation: Failed"
+            echo "File creation: Failed"
           fi
           
           # Test file modification
@@ -145,7 +145,7 @@ jobs:
           cd "$HOME"
           rmdir "$TEST_DIR" 2>/dev/null || echo "Directory not empty, leaving it"
           
-          echo "✅ File operations test completed!"
+          echo "File operations test completed!"
           echo "================================="
 
   test-git-operations:
@@ -167,18 +167,18 @@ jobs:
           
           # Test git availability
           if command -v git > /dev/null 2>&1; then
-            echo "✅ Git is available: $(git --version)"
+            echo "Git is available: $(git --version)"
           else
-            echo "❌ Git is not available"
+            echo "Git is not available"
             exit 1
           fi
           
           # Test GitHub SSH access
           echo "Testing GitHub SSH access..."
           if ssh -o StrictHostKeyChecking=no -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-            echo "✅ GitHub SSH access: Working"
+            echo "GitHub SSH access: Working"
           else
-            echo "⚠️  GitHub SSH access: May need setup (this is normal for first run)"
+            echo "GitHub SSH access: May need setup (this is normal for first run)"
           fi
           
           # Test basic git config
@@ -186,5 +186,5 @@ jobs:
           echo "User name: $(git config --global user.name || echo 'Not set')"
           echo "User email: $(git config --global user.email || echo 'Not set')"
           
-          echo "✅ Git operations test completed!"
+          echo "Git operations test completed!"
           echo "================================="
