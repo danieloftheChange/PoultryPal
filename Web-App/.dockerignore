@@ -1,0 +1,26 @@
+# Ignore node modules and logs
+node_modules
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+
+# Ignore test files
+test
+coverage
+
+# Ignore local environment files
+.env
+.env.local
+.DS_Store
+
+# Ignore Git and Docker files
+.git
+.dockerignore
+.gitignore
+
+# Ignore build artifacts
+dist
+build
+
+#logs
+logs
