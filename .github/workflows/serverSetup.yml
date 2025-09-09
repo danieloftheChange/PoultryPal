@@ -1,0 +1,69 @@
+name: Server Setup
+
+on:
+  workflow_dispatch:  # Manual trigger only
+
+jobs:
+  setup-server:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Install Docker on Server
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          timeout: 600s  # 10 minutes for installation
+          script: |
+            echo "🔧 Setting up server environment..."
+            
+            # Update system packages
+            echo "📦 Updating system packages..."
+            apt update
+            apt upgrade -y
+            
+            # Install required packages
+            echo "📦 Installing required packages..."
+            apt install -y \
+              apt-transport-https \
+              ca-certificates \
+              curl \
+              gnupg \
+              lsb-release \
+              software-properties-common
+            
+            # Check if Docker is already installed
+            if command -v docker > /dev/null 2>&1; then
+              echo "✅ Docker is already installed: $(docker --version)"
+            else
+              echo "🐳 Installing Docker..."
+              
+              # Install Docker using the official script
+              curl -fsSL https://get.docker.com -o get-docker.sh
+              sh get-docker.sh
+              
+              # Clean up
+              rm get-docker.sh
+            fi
+            
+            # Start and enable Docker service
+            echo "🚀 Starting Docker service..."
+            systemctl start docker
+            systemctl enable docker
+            
+            # Verify Docker installation
+            echo "✅ Docker installation completed!"
+            echo "Docker version: $(docker --version)"
+            echo "Docker service status: $(systemctl is-active docker)"
+            
+            # Test Docker functionality
+            echo "🧪 Testing Docker functionality..."
+            docker run --rm hello-world
+            
+            echo "🎉 Server setup completed successfully!"
+            echo "📊 System info:"
+            echo "OS: $(cat /etc/os-release | grep PRETTY_NAME | cut -d'"' -f2)"
+            echo "Free space: $(df -h / | tail -1 | awk '{print $4}')"
+            echo "Memory: $(free -h | grep Mem | awk '{print $7" available"}')"
