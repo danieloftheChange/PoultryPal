@@ -36,7 +36,7 @@ jobs:
           fi
 
           echo "Deleting Docker image with tag latest..."
-          IMAGE_ID=$(docker images -q kalibbalajohnson/poultrypal-backend:latest)
+          IMAGE_ID=$(docker images -q danielofthechange/poultrypal-backend:latest)
           if [ -n "$IMAGE_ID" ]; then
             docker rmi -f "$IMAGE_ID"
           else
@@ -44,8 +44,8 @@ jobs:
           fi
 
           echo "Pulling new Docker image..."
-          docker pull kalibbalajohnson/poultrypal-backend:latest
+          docker pull danielofthechange/poultrypal-backend:latest
 
           echo "Running new Docker container..."
-          docker run -d -p 3000:3000 --name poultrypal-backend-container kalibbalajohnson/poultrypal-backend:latest
+          docker run -d -p 3000:3000 --name poultrypal-backend-container danielofthechange/poultrypal-backend:latest
           EOF

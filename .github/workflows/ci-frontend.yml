@@ -18,10 +18,10 @@ jobs:
         run: docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
 
       - name: Build the Docker image
-        run: cd Web-App && docker build -t kalibbalajohnson/poultrypal .
+        run: cd Web-App && docker build -t danielofthechange/poultrypal .
 
       - name: Add latest tag to image
-        run: docker tag kalibbalajohnson/poultrypal kalibbalajohnson/poultrypal:latest
+        run: docker tag danielofthechange/poultrypal danielofthechange/poultrypal:latest
 
       - name: Push to Dockerhub
-        run: docker push kalibbalajohnson/poultrypal:latest
+        run: docker push danielofthechange/poultrypal:latest
