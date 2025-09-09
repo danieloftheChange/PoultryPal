@@ -1,6 +1,7 @@
 name: Backend CI Pipeline
 
 on:
+  workflow_dispatch:
   push:
     branches: ['main']
 

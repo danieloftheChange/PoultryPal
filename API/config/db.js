@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const uri =
-  "mongodb+srv://kalijoe11:DseNJnKKOPkqsTLq@poultry-management.7x02b.mongodb.net/?retryWrites=true&w=majority&appName=Poultry-Management";
+  "mongodb+srv://ainedanielm:aYbXijBPdZ97T0To@poultrypal.f3blpsp.mongodb.net/?retryWrites=true&w=majority&appName=poultrypal";
 
 async function connectToMongoDB() {
   try {
