@@ -57,26 +57,37 @@ const getDiagnosisById = async (req, res) => {
     const user = req.user;
 
     if (!user.farmId) {
-      return res
-        .status(400)
-        .json({ message: "User does not belong to a farm" });
+      return res.status(400).json({
+        success: false,
+        message: "User does not belong to a farm"
+      });
     }
 
-    const diagnosis = await Diagnosis.findOne({ id: id });
+    // SECURITY FIX: Verify diagnosis belongs to user's farm
+    const diagnosis = await Diagnosis.findOne({
+      id: id,
+      farmId: user.farmId
+    });
 
     if (!diagnosis) {
-      return res.status(404).json({ message: "Diagnosis not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Diagnosis not found or access denied"
+      });
     }
 
     res.status(200).json({
+      success: true,
       message: "Diagnosis retrieved successfully",
       diagnosis,
     });
   } catch (error) {
     console.error("Error fetching diagnosis:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching diagnosis", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error fetching diagnosis",
+      error: error.message
+    });
   }
 };
 
@@ -87,30 +98,38 @@ const updateDiagnosis = async (req, res) => {
     const user = req.user;
 
     if (!user.farmId) {
-      return res
-        .status(400)
-        .json({ message: "User does not belong to a farm" });
+      return res.status(400).json({
+        success: false,
+        message: "User does not belong to a farm"
+      });
     }
 
+    // SECURITY FIX: Verify diagnosis belongs to user's farm before updating
     const updatedDiagnosis = await Diagnosis.findOneAndUpdate(
-      { id: id },
+      { id: id, farmId: user.farmId },
       { imageUrl, disease, notes },
       { new: true }
     );
 
     if (!updatedDiagnosis) {
-      return res.status(404).json({ message: "Diagnosis not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Diagnosis not found or access denied"
+      });
     }
 
     res.status(200).json({
+      success: true,
       message: "Diagnosis updated successfully",
       diagnosis: updatedDiagnosis,
     });
   } catch (error) {
     console.error("Error updating diagnosis:", error);
-    res
-      .status(500)
-      .json({ message: "Error updating diagnosis", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error updating diagnosis",
+      error: error.message
+    });
   }
 };
 
@@ -120,25 +139,36 @@ const deleteDiagnosis = async (req, res) => {
     const user = req.user;
 
     if (!user.farmId) {
-      return res
-        .status(400)
-        .json({ message: "User does not belong to a farm" });
+      return res.status(400).json({
+        success: false,
+        message: "User does not belong to a farm"
+      });
     }
 
-    const deletedDiagnosis = await Diagnosis.findOneAndDelete({ id: id });
+    // SECURITY FIX: Verify diagnosis belongs to user's farm before deleting
+    const deletedDiagnosis = await Diagnosis.findOneAndDelete({
+      id: id,
+      farmId: user.farmId
+    });
 
     if (!deletedDiagnosis) {
-      return res.status(404).json({ message: "Diagnosis not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Diagnosis not found or access denied"
+      });
     }
 
     res.status(200).json({
+      success: true,
       message: "Diagnosis deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting diagnosis:", error);
-    res
-      .status(500)
-      .json({ message: "Error deleting diagnosis", error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Error deleting diagnosis",
+      error: error.message
+    });
   }
 };
 

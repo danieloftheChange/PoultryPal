@@ -1,7 +1,11 @@
 import express from "express";
 import farmController from "./farm.controller.js";
+import authMiddleware from "../../config/authMiddleware.js";
 
 const router = express.Router();
+
+// Apply authentication middleware to all farm routes
+router.use(authMiddleware);
 
 /**
  * @swagger

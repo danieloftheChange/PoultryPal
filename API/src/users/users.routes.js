@@ -1,6 +1,13 @@
 import express from "express";
 import userController from "./users.controller.js";
 import authMiddleware from "../../config/authMiddleware.js";
+import { validate } from "../../config/validationMiddleware.js";
+import { authLimiter } from "../../config/rateLimiter.js";
+import {
+  signupSchema,
+  loginSchema,
+  registerUserSchema,
+} from "../common/validators/user.validator.js";
 
 const router = express.Router();
 
@@ -52,9 +59,10 @@ const router = express.Router();
  *       500:
  *         description: Internal server error.
  */
-router.post("/signup", userController.signup);
+// Apply authentication rate limiting to signup and login
+router.post("/signup", authLimiter, validate(signupSchema), userController.signup);
 
-router.post("/register", authMiddleware, userController.registerUser);
+router.post("/register", authMiddleware, validate(registerUserSchema), userController.registerUser);
 
 /**
  * @swagger
@@ -200,6 +208,6 @@ router.get("/staff", authMiddleware, userController.getStaff);
  */
 // router.delete("/:id", userController.deleteUser);
 
-router.post("/login", userController.login);
+router.post("/login", authLimiter, validate(loginSchema), userController.login);
 
 export default router;
