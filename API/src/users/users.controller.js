@@ -3,10 +3,17 @@ import jwt from "jsonwebtoken";
 import User from "./users.model.js";
 import Farm from "../farm/farm.model.js";
 
-const JWT_SECRET =
-  "f873c65e7bdf4e8aaf3e86a8a091b3f6c9d1452e47a6741d512af0f7df06a5a8";
-const JWT_REFRESH_SECRET =
-  "9c7b3a84f41d487ab987e4a77bc6e9d2f4824e8bdc3b4ef8a2f6c9d7435be5c9";
+// Get JWT secrets from environment variables
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1h";
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+if (!JWT_SECRET || !JWT_REFRESH_SECRET) {
+  throw new Error(
+    "JWT_SECRET and JWT_REFRESH_SECRET must be defined in environment variables. Please check your .env file."
+  );
+}
 
 const signup = async (req, res) => {
   try {
@@ -122,17 +129,23 @@ const login = async (req, res) => {
     const accessToken = jwt.sign(
       { id: user._id, email: user.email },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: JWT_EXPIRES_IN }
     );
 
     const refreshToken = jwt.sign({ id: user._id }, JWT_REFRESH_SECRET, {
-      expiresIn: "7d",
+      expiresIn: JWT_REFRESH_EXPIRES_IN,
     });
 
-    res.cookie("refreshToken", refreshToken, {
+    // Secure cookie configuration
+    const cookieOptions = {
       httpOnly: true,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/',
+    };
+
+    res.cookie("refreshToken", refreshToken, cookieOptions);
 
     res.status(200).json({
       message: "Login successful",

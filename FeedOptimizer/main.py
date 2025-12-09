@@ -2,13 +2,20 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 import logging
+import os
 
 from optimizer.models import FormulaRequest, FormulaResponse
 from optimizer.optimizer import generate_feed_formula
 
+# Get environment variables
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173')
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
+PORT = int(os.getenv('PORT', '8000'))
+HOST = os.getenv('HOST', '0.0.0.0')
+
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
+    level=getattr(logging, LOG_LEVEL.upper()),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger("feed-optimizer")
@@ -19,12 +26,14 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configure CORS
+# Configure CORS with environment variables
+allowed_origins = [origin.strip() for origin in CORS_ORIGINS.split(',')]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, replace with specific origins
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -52,4 +61,4 @@ async def optimize_formula(request: FormulaRequest):
 
 
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host=HOST, port=PORT, reload=True)
