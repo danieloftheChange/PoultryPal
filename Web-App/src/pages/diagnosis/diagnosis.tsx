@@ -7,6 +7,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import Layout from '@/components/layout';
+import { getApiUrl } from '@/config/api';
 import Navbar2 from '@/components/navBar2';
 import {
     Form,
@@ -88,7 +89,7 @@ function DiagnosisPage() {
             const confidence = predictionData.prediction?.confidence ?? 'Unknown';
 
             await axios.post(
-                'http://92.112.180.180:3000/api/v1/diagnosis',
+                getApiUrl('/diagnosis'),
                 {
                     imageUrl,
                     disease,
@@ -164,7 +165,7 @@ function DiagnosisPage() {
         queryKey: ['diagnoses'],
         queryFn: async () => {
             try {
-                const res = await fetch('http://92.112.180.180:3000/api/v1/diagnosis', {
+                const res = await fetch(getApiUrl('/diagnosis'), {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${accessToken}`,

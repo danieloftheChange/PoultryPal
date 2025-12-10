@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
+import { getApiUrl } from '@/config/api';
 import { DataTable } from '@/components/dataTable/dataTable';
 import {
   Dialog,
@@ -188,7 +189,7 @@ const BulkAddDialog = ({
     for (let i = 0; i < validItems.length; i++) {
       try {
         await axios.post(
-          'http://92.112.180.180:3000/api/v1/stock',
+          getApiUrl('stock'),
           validItems[i],
           {
             headers: {
@@ -441,7 +442,7 @@ const BulkRestockDialog = ({
       
       try {
         await axios.patch(
-          `http://92.112.180.180:3000/api/v1/stock/${item.id}`,
+          getApiUrl(`stock/${item.id}`),
           {
             quantity: item.quantity + addQuantity,
             notes: notes ? `${item.notes || ''}\n${new Date().toLocaleString()}: Bulk restocked +${addQuantity} ${item.unit || 'kg'} - ${notes}` : item.notes
@@ -626,7 +627,7 @@ const BulkCheckoutDialog = ({
       
       try {
         await axios.patch(
-          `http://92.112.180.180:3000/api/v1/stock/${item.id}`,
+          getApiUrl(`stock/${item.id}`),
           {
             quantity: item.quantity - removeQuantity,
             notes: notes ? `${item.notes || ''}\n${new Date().toLocaleString()}: Bulk checkout -${removeQuantity} ${item.unit || 'kg'} - ${notes}` : item.notes
@@ -892,7 +893,7 @@ const CSVImportDialog = ({
     for (let i = 0; i < validData.length; i++) {
       try {
         await axios.post(
-          'http://92.112.180.180:3000/api/v1/stock',
+          getApiUrl('stock'),
           validData[i],
           {
             headers: {
@@ -1102,7 +1103,7 @@ function StockPage() {
     setLoading(true);
     try {
       const res = await axios.post(
-        'http://92.112.180.180:3000/api/v1/stock',
+        getApiUrl('stock'),
         data,
         {
           headers: {
@@ -1132,7 +1133,7 @@ function StockPage() {
     setRestockLoading(true);
     try {
       const res = await axios.patch(
-        `http://92.112.180.180:3000/api/v1/stock/${selectedItem.id}`,
+        getApiUrl(`stock/${selectedItem.id}`),
         {
           quantity: selectedItem.quantity + restockAmount,
           notes: restockNote ? `${selectedItem.notes || ''}\n${new Date().toLocaleString()}: Restocked +${restockAmount} ${selectedItem.unit || 'kg'} - ${restockNote}` : selectedItem.notes
@@ -1189,7 +1190,7 @@ function StockPage() {
     queryKey: ['stock'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/stock', {
+        const res = await fetch(getApiUrl('stock'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,

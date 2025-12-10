@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DataTable } from '@/components/dataTable/dataTable';
+import { getApiUrl } from '@/config/api';
 import {
   Dialog,
   DialogContent,
@@ -158,7 +159,7 @@ function ProductionPage() {
     queryKey: ['batches'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/batch', {
+        const res = await fetch(getApiUrl('/batch'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
@@ -275,7 +276,7 @@ function ProductionPage() {
       if (editMode && selectedProduction) {
         // Update existing production record
         await axios.patch(
-          `http://92.112.180.180:3000/api/v1/production/${selectedProduction.id}`,
+          getApiUrl(`/production/${selectedProduction.id}`),
           payload,
           {
             headers: {
@@ -289,7 +290,7 @@ function ProductionPage() {
       } else {
         // Create new production record
         await axios.post(
-          'http://92.112.180.180:3000/api/v1/production',
+          getApiUrl('/production'),
           payload,
           {
             headers: {
@@ -326,7 +327,7 @@ function ProductionPage() {
     setLoading(true);
     try {
       await axios.delete(
-        `http://92.112.180.180:3000/api/v1/production/${selectedProduction.id}`,
+        getApiUrl(`/production/${selectedProduction.id}`),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -357,7 +358,7 @@ function ProductionPage() {
   } = useQuery<EnhancedProduction[]>({
     queryKey: ['production'],
     queryFn: async () => {
-      const res = await fetch('http://92.112.180.180:3000/api/v1/production', {
+      const res = await fetch(getApiUrl('/production'), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import axios from 'axios';
 import Layout from '@/components/layout';
+import { getApiUrl } from '@/config/api';
 import Navbar2 from '@/components/navBar2';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +55,7 @@ function FeedFormulaPage() {
     queryKey: ['formulas'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/feed-formula', {
+        const res = await fetch(getApiUrl('/feed-formula'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
@@ -76,7 +77,7 @@ function FeedFormulaPage() {
     if (!selectedFormula) return;
     
     try {
-      await axios.delete(`http://92.112.180.180:3000/api/v1/feed-formula/${selectedFormula.id}`, {
+      await axios.delete(getApiUrl(`/feed-formula/${selectedFormula.id}`), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,

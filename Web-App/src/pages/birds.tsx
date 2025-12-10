@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getApiUrl } from '@/config/api';
 import { DataTable } from '@/components/dataTable/dataTable';
 import {
   Dialog,
@@ -81,7 +82,7 @@ const BirdCountUpdateDialog = ({
 
     try {
       await axios.patch(
-        `http://92.112.180.180:3000/api/v1/batch/${batch.id}/counts`,
+        getApiUrl(`batch/${batch.id}/counts`),
         data,
         {
           headers: {
@@ -258,7 +259,7 @@ function BatchPage() {
       if (editMode && selectedBatch) {
         // Update existing batch
         const res = await axios.patch(
-          `http://92.112.180.180:3000/api/v1/batch/${selectedBatch.id}`,
+          getApiUrl(`batch/${selectedBatch.id}`),
           data,
           {
             headers: {
@@ -271,7 +272,7 @@ function BatchPage() {
       } else {
         // Create new batch
         const res = await axios.post(
-          'http://92.112.180.180:3000/api/v1/batch',
+          getApiUrl('batch'),
           data,
           {
             headers: {
@@ -305,7 +306,7 @@ function BatchPage() {
     setLoading(true);
     try {
       await axios.patch(
-        `http://92.112.180.180:3000/api/v1/batch/${selectedBatch.id}`,
+        getApiUrl(`batch/${selectedBatch.id}`),
         { isArchived: !selectedBatch.isArchived },
         {
           headers: {
@@ -332,7 +333,7 @@ function BatchPage() {
     queryKey: ['batches'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/batch',
+        const res = await fetch(getApiUrl('batch'),
           {
             headers: {
               'Content-Type': 'application/json',

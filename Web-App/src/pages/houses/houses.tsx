@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DataTable } from '@/components/dataTable/dataTable';
+import { getApiUrl } from '@/config/api';
 import {
   Dialog,
   DialogContent,
@@ -90,7 +91,7 @@ function HousesPage() {
       if (editMode && selectedHouse) {
         // Update existing house
         const res = await axios.patch(
-          `http://92.112.180.180:3000/api/v1/house/${selectedHouse.id}`,
+          getApiUrl(`/house/${selectedHouse.id}`),
           data,
           {
             headers: {
@@ -103,7 +104,7 @@ function HousesPage() {
       } else {
         // Create new house
         const res = await axios.post(
-          'http://92.112.180.180:3000/api/v1/house',
+          getApiUrl('/house'),
           data,
           {
             headers: {
@@ -137,7 +138,7 @@ function HousesPage() {
     setLoading(true);
     try {
       await axios.delete(
-        `http://92.112.180.180:3000/api/v1/house/${selectedHouse.id}`,
+        getApiUrl(`/house/${selectedHouse.id}`),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -163,7 +164,7 @@ function HousesPage() {
     queryKey: ['houses'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/house',
+        const res = await fetch(getApiUrl('/house'),
           {
             headers: {
               'Content-Type': 'application/json',

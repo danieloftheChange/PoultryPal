@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from 'axios';
+import { getApiUrl } from '@/config/api';
 import { 
   Form, 
   FormControl, 
@@ -126,7 +127,7 @@ export const FormulaForm = ({ initialData, onSubmit, isLoading }: FormulaFormPro
       
       // Send data to optimization API
       const response = await axios.post(
-        'http://92.112.180.180:3000/api/v1/feed-formula/optimize',
+        getApiUrl('feed-formula/optimize'),
         {
           targetNutrition: formData.targetNutrition,
           availableIngredients: ingredients.filter(i => i.name.trim() !== '')

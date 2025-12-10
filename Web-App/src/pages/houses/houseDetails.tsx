@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout';
+import { getApiUrl } from '@/config/api';
 import Navbar2 from '@/components/navBar2';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
@@ -149,7 +150,7 @@ const HouseDetailPage = () => {
     setLoadingAllocation(true);
     try {
       const res = await axios.post(
-        'http://92.112.180.180:3000/api/v1/batch/allocation',
+        getApiUrl('/batch/allocation'),
         {
           ...data,
           houseId: id,
@@ -181,7 +182,7 @@ const HouseDetailPage = () => {
     setLoadingTransferIn(true);
     try {
       const res = await axios.post(
-        'http://92.112.180.180:3000/api/v1/batch/allocation/transfer',
+        getApiUrl('/batch/allocation/transfer'),
         {
           batchId: data.batchId,
           fromHouseId: data.sourceHouseId,
@@ -215,7 +216,7 @@ const HouseDetailPage = () => {
     setLoadingTransferOut(true);
     try {
       const res = await axios.post(
-        'http://92.112.180.180:3000/api/v1/batch/allocation/transfer',
+        getApiUrl('/batch/allocation/transfer'),
         {
           batchId: data.batchId,
           fromHouseId: data.sourceHouseId,
@@ -248,7 +249,7 @@ const HouseDetailPage = () => {
   const { data: batches = [] } = useQuery<Batch[]>({
     queryKey: ['batches'],
     queryFn: async () => {
-      const res = await fetch('http://92.112.180.180:3000/api/v1/batch',
+      const res = await fetch(getApiUrl('/batch'),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -269,7 +270,7 @@ const HouseDetailPage = () => {
   } = useQuery<Allocation[]>({
     queryKey: ['allocation', id],
     queryFn: async () => {
-      const res = await fetch(`http://92.112.180.180:3000/api/v1/batch/allocation/${id}`, {
+      const res = await fetch(getApiUrl(`/batch/allocation/${id}`), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
@@ -288,7 +289,7 @@ const HouseDetailPage = () => {
   const { data: houses = [] } = useQuery<House[]>({
     queryKey: ['houses'],
     queryFn: async () => {
-      const res = await fetch('http://92.112.180.180:3000/api/v1/house', {
+      const res = await fetch(getApiUrl('/house'), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
@@ -313,7 +314,7 @@ const HouseDetailPage = () => {
   } = useQuery<SensorData[]>({
     queryKey: ['sensorData', id],
     queryFn: async () => {
-      const res = await fetch(`http://92.112.180.180:3000/api/v1/monitoring`, {
+      const res = await fetch(getApiUrl(`/monitoring`), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
@@ -330,7 +331,7 @@ const HouseDetailPage = () => {
     setLoadingMonitor(true);
     try {
       const res = await axios.patch(
-        `http://92.112.180.180:3000/api/v1/house/${id}`,
+        getApiUrl(`/house/${id}`),
         { isMonitored: checked },
         {
           headers: {
