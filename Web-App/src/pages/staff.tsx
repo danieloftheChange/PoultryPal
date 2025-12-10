@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { DataTable } from '@/components/dataTable/dataTable';
+import { getApiUrl } from '@/config/api';
 import {
   Dialog,
   DialogContent,
@@ -169,7 +170,7 @@ function StaffPage() {
       const { confirmPassword, ...submitData } = data;
       
       const res = await axios.post(
-        'http://92.112.180.180:3000/api/v1/user/register',
+        getApiUrl('/user/register'),
         submitData,
         {
           headers: {
@@ -211,7 +212,7 @@ function StaffPage() {
     try {
       // Assuming there's an API endpoint to delete staff
       await axios.delete(
-        `http://92.112.180.180:3000/api/v1/user/${staffToDelete.id}`,
+        getApiUrl(`/user/${staffToDelete.id}`),
         {
           headers: {
             'Content-Type': 'application/json',
@@ -274,7 +275,7 @@ function StaffPage() {
     queryKey: ['staff'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/user/staff',
+        const res = await fetch(getApiUrl('/user/staff'),
           {
             headers: {
               'Content-Type': 'application/json',

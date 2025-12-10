@@ -9,6 +9,7 @@ import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import { Eye, EyeOff, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { getApiUrl } from '@/config/api';
 
 const formSchema = z.object({
   firstName: z.string()
@@ -89,7 +90,7 @@ const SignUpPage = ({
       // Omit passwordConfirm when sending data to the API
       const { passwordConfirm, ...submitData } = data;
       
-      await axios.post('http://92.112.180.180:3000/api/v1/user/signup', submitData);
+      await axios.post(getApiUrl('user/signup'), submitData);
       
       setSuccess("Account created successfully! Redirecting to login page...");
       form.reset();

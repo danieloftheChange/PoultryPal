@@ -4,6 +4,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import axios from "axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getApiUrl } from '@/config/api';
 
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent} from "@/components/ui/card";
@@ -128,7 +129,7 @@ export default function SettingsPage() {
     queryFn: async () => {
       if (!user?.farmId) return null;
       
-      const res = await axios.get(`http://92.112.180.180:3000/api/v1/farm/${user.farmId}`, {
+      const res = await axios.get(getApiUrl(`/farm/${user.farmId}`), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
@@ -155,7 +156,7 @@ export default function SettingsPage() {
   // Update farm mutation
   const updateFarmMutation = useMutation({
     mutationFn: async (data: z.infer<typeof farmProfileSchema>) => {
-      return axios.patch(`http://92.112.180.180:3000/api/v1/farm/${user.farmId}`, data, {
+      return axios.patch(getApiUrl(`/farm/${user.farmId}`), data, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,

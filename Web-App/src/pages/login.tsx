@@ -10,6 +10,7 @@ import axios from 'axios';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import React from "react";
+import { getApiUrl } from '@/config/api';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address" }),
@@ -62,7 +63,7 @@ const LoginPage = ({
     setLoading(true);
     setLoginError(null);
     try {
-      const response = await axios.post('http://92.112.180.180:3000/api/v1/user/login', {
+      const response = await axios.post(getApiUrl('user/login'), {
         email: data.email,
         password: data.password
       });

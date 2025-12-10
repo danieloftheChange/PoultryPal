@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import axios from 'axios';
+import { getApiUrl } from '@/config/api';
 import {
   Dialog,
   DialogContent,
@@ -107,7 +108,7 @@ export const BirdCountUpdateDialog = ({
       };
 
       await axios.patch(
-        `http://92.112.180.180:3000/api/v1/batch/${batch.id}/counts`,
+        getApiUrl(`batch/${batch.id}/counts`),
         payload,
         {
           headers: {

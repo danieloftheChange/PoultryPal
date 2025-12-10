@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Navbar2 from "@/components/navBar2";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Layout from "@/components/layout";
+import { getApiUrl } from '@/config/api';
 import {
   BarChart as BarChartIcon,
   Home,
@@ -149,7 +150,7 @@ const DashboardPage = () => {
     queryKey: ['staff'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/user/staff', {
+        const res = await fetch(getApiUrl('/user/staff'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
@@ -170,7 +171,7 @@ const DashboardPage = () => {
     queryKey: ['houses'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/house', {
+        const res = await fetch(getApiUrl('/house'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,
@@ -191,7 +192,7 @@ const DashboardPage = () => {
     queryKey: ['batches'],
     queryFn: async () => {
       try {
-        const res = await fetch('http://92.112.180.180:3000/api/v1/batch', {
+        const res = await fetch(getApiUrl('/batch'), {
           headers: {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${accessToken}`,

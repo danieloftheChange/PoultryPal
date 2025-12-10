@@ -14,10 +14,12 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: "http://92.112.180.180:3000/api/v1",
+        url: process.env.SWAGGER_SERVER_URL || "http://localhost:3000/api/v1",
+        description: "API Server",
       },
       {
         url: "http://127.0.0.1:3000/api/v1",
+        description: "Local Development Server",
       },
     ],
   },

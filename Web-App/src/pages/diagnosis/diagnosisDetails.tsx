@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '@/components/layout';
+import { getApiUrl } from '@/config/api';
 import Navbar2 from '@/components/navBar2';
 import { useQuery } from '@tanstack/react-query';
 
@@ -23,7 +24,7 @@ const DiagnosisDetailPage = () => {
         queryKey: ['diagnoses'],
         queryFn: async () => {
             try {
-                const res = await fetch('http://92.112.180.180:3000/api/v1/diagnosis', {
+                const res = await fetch(getApiUrl('/diagnosis'), {
                     headers: {
                         'Content-Type': 'application/json',
                         Authorization: `Bearer ${accessToken}`,

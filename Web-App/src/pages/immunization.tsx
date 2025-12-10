@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Layout from '@/components/layout';
+import { getApiUrl } from '@/config/api';
 import Navbar2 from '@/components/navBar2';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from "@/components/ui/input";
@@ -175,7 +176,7 @@ function ImmunizationPage() {
         queryKey: ['batches'],
         queryFn: async () => {
             try {
-                const res = await fetch('http://92.112.180.180:3000/api/v1/batch',
+                const res = await fetch(getApiUrl('/batch'),
                     {
                         headers: {
                             'Content-Type': 'application/json',
