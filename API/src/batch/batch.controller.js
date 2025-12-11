@@ -1,5 +1,6 @@
 import { Batch, BatchAllocation } from "./batch.model.js";
 import House from "../house/house.model.js";
+import BirdCountHistory from "./birdCountHistory.model.js";
 
 // Get all batches for the logged-in user's farm
 const getBatches = async (req, res) => {
@@ -13,6 +14,35 @@ const getBatches = async (req, res) => {
     }
 
     const batches = await Batch.find({ farmId: user.farmId }).sort({ createdAt: -1 });
+
+    // Optionally include allocation data if requested
+    if (req.query.includeAllocations === 'true') {
+      // Fetch all allocations for this farm's batches in one query
+      const batchIds = batches.map(b => b.id);
+      const allAllocations = await BatchAllocation.find({ batchId: { $in: batchIds } });
+
+      // Group allocations by batchId
+      const allocationsByBatch = allAllocations.reduce((acc, alloc) => {
+        if (!acc[alloc.batchId]) acc[alloc.batchId] = [];
+        acc[alloc.batchId].push(alloc);
+        return acc;
+      }, {});
+
+      // Enhance batches with allocation data
+      const batchesWithAllocations = batches.map(batch => {
+        const batchAllocations = allocationsByBatch[batch.id] || [];
+        const allocatedCount = batchAllocations.reduce((sum, a) => sum + a.quantity, 0);
+        const unallocatedCount = batch.currentCount - allocatedCount;
+
+        return {
+          ...batch.toObject(),
+          allocatedCount,
+          unallocatedCount
+        };
+      });
+
+      return res.status(200).json(batchesWithAllocations);
+    }
 
     res.status(200).json(batches);
   } catch (error) {
@@ -70,6 +100,43 @@ const getBatchById = async (req, res) => {
     }
 
     res.status(200).json(batch);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+// New endpoint to get batch availability (allocated/unallocated counts)
+const getBatchAvailability = async (req, res) => {
+  try {
+    const user = req.user;
+    const batchId = req.params.id;
+
+    if (!user.farmId) {
+      return res
+        .status(400)
+        .json({ message: "User does not belong to a farm" });
+    }
+
+    const batch = await Batch.findOne({ id: batchId, farmId: user.farmId });
+
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found" });
+    }
+
+    const allocatedCount = await batch.getAllocatedCount();
+    const unallocatedCount = await batch.getUnallocatedCount();
+
+    res.status(200).json({
+      batchId: batch.id,
+      batchName: batch.name,
+      originalCount: batch.originalCount,
+      dead: batch.dead,
+      culled: batch.culled,
+      offlaid: batch.offlaid,
+      currentCount: batch.currentCount,
+      allocatedCount: allocatedCount,
+      unallocatedCount: unallocatedCount
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
@@ -172,14 +239,24 @@ const updateBirdCounts = async (req, res) => {
         .json({ message: "User does not belong to a farm" });
     }
 
-    const batch = await Batch.findOne({ id: batchId, farmId: user.farmId });
-    if (!batch) {
-      return res.status(404).json({ message: "Batch not found or unauthorized" });
-    }
-
     // Validate that at least one count is provided
     if (dead === undefined && culled === undefined && offlaid === undefined) {
       return res.status(400).json({ message: "At least one count (dead, culled, or offlaid) must be provided" });
+    }
+
+    // Validate all provided values are non-negative integers
+    if ((dead !== undefined && (dead < 0 || !Number.isInteger(dead))) ||
+        (culled !== undefined && (culled < 0 || !Number.isInteger(culled))) ||
+        (offlaid !== undefined && (offlaid < 0 || !Number.isInteger(offlaid)))) {
+      return res.status(400).json({
+        message: "Bird counts must be non-negative integers"
+      });
+    }
+
+    // First, get current batch to validate
+    const batch = await Batch.findOne({ id: batchId, farmId: user.farmId });
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found or unauthorized" });
     }
 
     // Calculate new totals
@@ -189,7 +266,7 @@ const updateBirdCounts = async (req, res) => {
 
     // Validate totals don't exceed original count
     if (newDead + newCulled + newOfflaid > batch.originalCount) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Total of dead, culled, and offlaid birds cannot exceed original count",
         currentTotal: batch.dead + batch.culled + batch.offlaid,
         originalCount: batch.originalCount,
@@ -197,16 +274,51 @@ const updateBirdCounts = async (req, res) => {
       });
     }
 
-    // Update the batch
+    // Store before state for audit trail
+    const beforeState = {
+      dead: batch.dead,
+      culled: batch.culled,
+      offlaid: batch.offlaid,
+      currentCount: batch.currentCount
+    };
+
+    // CRITICAL FIX: Use atomic $inc operation to prevent race conditions
+    const incrementUpdate = {};
+    if (dead !== undefined) incrementUpdate.dead = dead;
+    if (culled !== undefined) incrementUpdate.culled = culled;
+    if (offlaid !== undefined) incrementUpdate.offlaid = offlaid;
+
     const updatedBatch = await Batch.findOneAndUpdate(
       { id: batchId, farmId: user.farmId },
-      { 
-        dead: newDead,
-        culled: newCulled,
-        offlaid: newOfflaid
-      },
+      { $inc: incrementUpdate },
       { new: true }
     );
+
+    if (!updatedBatch) {
+      return res.status(404).json({ message: "Batch not found or unauthorized" });
+    }
+
+    // Create audit trail record
+    const historyEntry = new BirdCountHistory({
+      batchId: batch.id,
+      farmId: user.farmId,
+      userId: user.id,
+      userName: `${user.firstName} ${user.lastName}`,
+      dead: dead || 0,
+      culled: culled || 0,
+      offlaid: offlaid || 0,
+      reason: reason || '',
+      notes: notes || '',
+      beforeState: beforeState,
+      afterState: {
+        dead: updatedBatch.dead,
+        culled: updatedBatch.culled,
+        offlaid: updatedBatch.offlaid,
+        currentCount: updatedBatch.currentCount
+      }
+    });
+
+    await historyEntry.save();
 
     res.status(200).json({
       message: "Bird counts updated successfully",
@@ -215,7 +327,8 @@ const updateBirdCounts = async (req, res) => {
         dead: dead || 0,
         culled: culled || 0,
         offlaid: offlaid || 0
-      }
+      },
+      historyId: historyEntry.id
     });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
@@ -238,11 +351,16 @@ const createBatchAllocation = async (req, res) => {
       return res.status(404).json({ message: "Batch not found" });
     }
 
-    // Use currentCount instead of originalCount for allocation
-    if (quantity > batch.currentCount) {
-      return res.status(400).json({ 
-        message: "Not enough birds available in batch",
-        availableBirds: batch.currentCount,
+    // CRITICAL FIX: Check total allocations, not just current count
+    const allocatedCount = await batch.getAllocatedCount();
+    const unallocatedCount = batch.currentCount - allocatedCount;
+
+    if (quantity > unallocatedCount) {
+      return res.status(400).json({
+        message: "Not enough unallocated birds available in batch",
+        currentCount: batch.currentCount,
+        allocatedCount: allocatedCount,
+        unallocatedCount: unallocatedCount,
         requestedQuantity: quantity
       });
     }
@@ -263,10 +381,29 @@ const createBatchAllocation = async (req, res) => {
       : 0;
     const totalQuantity = existingQuantity + quantity;
 
+    // Check house capacity
     if (house.capacity && totalQuantity > house.capacity) {
       return res
         .status(400)
         .json({ message: "Allocation exceeds house capacity" });
+    }
+
+    // CRITICAL FIX: Also check total house occupancy across all batches
+    const allHouseAllocations = await BatchAllocation.find({ houseId });
+    const currentHouseOccupancy = allHouseAllocations.reduce(
+      (sum, alloc) => sum + alloc.quantity,
+      0
+    );
+    const newTotalOccupancy = currentHouseOccupancy + quantity;
+
+    if (house.capacity && newTotalOccupancy > house.capacity) {
+      return res.status(400).json({
+        message: "Adding this allocation would exceed house capacity",
+        houseCapacity: house.capacity,
+        currentOccupancy: currentHouseOccupancy,
+        requestedAddition: quantity,
+        availableSpace: house.capacity - currentHouseOccupancy
+      });
     }
 
     let allocation;
@@ -461,10 +598,40 @@ const transferBirds = async (req, res) => {
   }
 };
 
+// Get bird count history for a batch
+const getBirdCountHistory = async (req, res) => {
+  try {
+    const user = req.user;
+    const batchId = req.params.id;
+
+    if (!user.farmId) {
+      return res
+        .status(400)
+        .json({ message: "User does not belong to a farm" });
+    }
+
+    // Verify batch belongs to user's farm
+    const batch = await Batch.findOne({ id: batchId, farmId: user.farmId });
+    if (!batch) {
+      return res.status(404).json({ message: "Batch not found or unauthorized" });
+    }
+
+    // Get history sorted by most recent first
+    const history = await BirdCountHistory.find({ batchId })
+      .sort({ createdAt: -1 })
+      .limit(50); // Limit to last 50 entries
+
+    res.status(200).json(history);
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 export default {
   getBatches,
   createBatch,
   getBatchById,
+  getBatchAvailability,
   updateBatch,
   deleteBatch,
   createBatchAllocation,
@@ -472,5 +639,6 @@ export default {
   getHouseBatchAllocations,
   updateBatchAllocation,
   transferBirds,
-  updateBirdCounts, // New endpoint
+  updateBirdCounts,
+  getBirdCountHistory,
 };

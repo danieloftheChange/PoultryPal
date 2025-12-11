@@ -84,15 +84,7 @@ export function DataTable<TData, TValue>({
   });
   return (
     <div className="rounded-md border p-6">
-      <div className="flex items-center">
-        <Input
-          placeholder="Search results..."
-          value={(table.getColumn("item")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("item")?.setFilterValue(event.target.value)
-          }
-          className="max-w-sm"
-        />
+      <div className="flex items-center mb-4">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" className="ml-auto">

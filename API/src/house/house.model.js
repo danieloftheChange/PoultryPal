@@ -13,5 +13,9 @@ const houseSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// PERFORMANCE: Add indexes for house queries
+houseSchema.index({ farmId: 1 });
+houseSchema.index({ farmId: 1, houseType: 1 });
+
 const House = mongoose.model("House", houseSchema);
 export default House;

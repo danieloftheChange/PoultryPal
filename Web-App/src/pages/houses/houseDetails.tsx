@@ -47,6 +47,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'react-hot-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface House {
   id: string;
@@ -168,9 +169,21 @@ const HouseDetailPage = () => {
       setOpenCreate(false);
     } catch (error) {
       if (axios.isAxiosError(error) && error.response) {
-        toast.error(error.response.data.message || 'Failed to allocate birds');
+        const errorData = error.response.data;
+        let errorMessage = errorData.message || 'Failed to allocate birds';
+
+        // Add helpful details for specific errors
+        if (errorData.unallocatedCount !== undefined) {
+          errorMessage += `. Only ${errorData.unallocatedCount} birds available (${errorData.allocatedCount} already allocated).`;
+        } else if (errorData.availableSpace !== undefined) {
+          errorMessage += `. Only ${errorData.availableSpace} spaces available in this house.`;
+        }
+
+        toast.error(errorMessage);
+      } else if (error instanceof Error) {
+        toast.error(`Error: ${error.message}`);
       } else {
-        toast.error('Failed to allocate birds');
+        toast.error('Network error. Please check your connection.');
       }
       console.error('Batch allocation error:', error);
     } finally {
@@ -215,6 +228,23 @@ const HouseDetailPage = () => {
   const onSubmitTransferOut = async (data: TransferFormData) => {
     setLoadingTransferOut(true);
     try {
+      // CRITICAL FIX: Validate that source house has enough birds before transfer
+      const sourceAllocation = allocations.find(a => a.batchId === data.batchId);
+
+      if (!sourceAllocation) {
+        toast.error('Batch not found in this house');
+        setLoadingTransferOut(false);
+        return;
+      }
+
+      if (data.quantity > sourceAllocation.quantity) {
+        toast.error(
+          `Only ${sourceAllocation.quantity} birds available to transfer. You requested ${data.quantity}.`
+        );
+        setLoadingTransferOut(false);
+        return;
+      }
+
       const res = await axios.post(
         getApiUrl('/batch/allocation/transfer'),
         {
@@ -260,7 +290,7 @@ const HouseDetailPage = () => {
       if (!res.ok) throw new Error('Failed to fetch batch data');
       return res.json();
     },
-    refetchInterval: 3000,
+    refetchInterval: 15000, // Standardized to 15 seconds
   });
 
   const {
@@ -279,7 +309,7 @@ const HouseDetailPage = () => {
       if (!res.ok) throw new Error('Failed to fetch allocation');
       return res.json();
     },
-    refetchInterval: 3000,
+    refetchInterval: 15000, // Standardized to 15 seconds
   });
 
   if (isAllocationsError) {
@@ -298,7 +328,7 @@ const HouseDetailPage = () => {
       if (!res.ok) throw new Error('Failed to fetch houses');
       return res.json();
     },
-    refetchInterval: 2000,
+    refetchInterval: 15000, // Standardized to 15 seconds
   });
 
   useEffect(() => {
@@ -680,6 +710,42 @@ const HouseDetailPage = () => {
                   <CardDescription>Current allocation status and distribution</CardDescription>
                 </CardHeader>
                 <CardContent>
+                  {/* Actionable capacity warning */}
+                  {fillPercentage >= 90 && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Critical Capacity</AlertTitle>
+                      <AlertDescription className="mt-2">
+                        <p className="mb-2">
+                          This house is at {fillPercentage}% capacity ({totalAllocated}/{houseCapacity} birds).
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              if (allocations.length > 0) {
+                                setSelectedBatch(allocations[0]);
+                                setOpenTransferOut(true);
+                              }
+                            }}
+                          >
+                            Transfer Birds Out
+                          </Button>
+                        </div>
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  {fillPercentage >= 75 && fillPercentage < 90 && (
+                    <Alert className="mb-4 border-amber-500 bg-amber-50">
+                      <AlertTriangle className="h-4 w-4 text-amber-600" />
+                      <AlertTitle className="text-amber-900">Approaching Capacity</AlertTitle>
+                      <AlertDescription className="text-amber-800">
+                        House is at {fillPercentage}% capacity. Consider planning transfers soon.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
                   <div className="flex flex-col">
                     <div className="mb-3 flex justify-between items-center">
                       <div>
@@ -695,7 +761,7 @@ const HouseDetailPage = () => {
                     </div>
                     
                     <div className="w-full bg-gray-100 p-4 rounded-lg">
-                      <div className="grid grid-cols-10 gap-2">
+                      <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
                         {Array.from({ length: totalBoxes }).map((_, index) => (
                           <div
                             key={index}
@@ -867,11 +933,15 @@ const HouseDetailPage = () => {
                         <SelectContent>
                           {batches
                             ?.filter(batch => !batch.isArchived)
-                            .map((batch) => (
-                              <SelectItem key={batch.id} value={batch.id}>
-                                {batch.name} ({batch.quantity} available)
-                              </SelectItem>
-                            ))}
+                            .map((batch) => {
+                              // Show current count as available
+                              const availableCount = batch.currentCount || batch.quantity || 0;
+                              return (
+                                <SelectItem key={batch.id} value={batch.id}>
+                                  {batch.name} ({availableCount} birds in batch)
+                                </SelectItem>
+                              );
+                            })}
                         </SelectContent>
                       </Select>
                     </FormControl>
@@ -1088,15 +1158,31 @@ const HouseDetailPage = () => {
               <FormField
                 control={transferOutForm.control}
                 name="quantity"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity</FormLabel>
-                    <FormControl>
-                      <Input type="number" placeholder="Enter number of birds" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const selectedBatch = transferOutForm.watch('batchId');
+                  const sourceAllocation = allocations.find(a => a.batchId === selectedBatch);
+                  const maxAvailable = sourceAllocation?.quantity || 0;
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          placeholder="Enter number of birds"
+                          max={maxAvailable}
+                          {...field}
+                        />
+                      </FormControl>
+                      {maxAvailable > 0 && (
+                        <p className="text-xs text-gray-500">
+                          Maximum available: {maxAvailable} birds
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               
               <DialogFooter>
