@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "seed": "node src/seed/seedData.js"
   },
   "author": "",
   "license": "ISC",

@@ -12,21 +12,28 @@
  */
 export const validate = (schema) => {
   return (req, res, next) => {
-    // Determine what to validate based on schema properties
-    const toValidate = {};
+    // Check if schema has .body, .params, or .query properties (multi-part schema)
+    // or if it's a direct Joi schema
+    const isMultiPartSchema = schema.body || schema.params || schema.query;
 
-    if (schema.body) toValidate.body = req.body;
-    if (schema.params) toValidate.params = req.params;
-    if (schema.query) toValidate.query = req.query;
+    let error, value;
 
-    // If no specific validation targets, validate body by default
-    if (!schema.body && !schema.params && !schema.query) {
-      toValidate.body = req.body;
+    if (isMultiPartSchema) {
+      // Handle multi-part schemas (e.g., { body: schema, params: schema })
+      const toValidate = {};
+      if (schema.body) toValidate.body = req.body;
+      if (schema.params) toValidate.params = req.params;
+      if (schema.query) toValidate.query = req.query;
+
+      const result = schema.validate(toValidate, { abortEarly: false });
+      error = result.error;
+      value = result.value;
+    } else {
+      // Handle direct Joi schemas - validate req.body by default
+      const result = schema.validate(req.body, { abortEarly: false });
+      error = result.error;
+      value = result.value;
     }
-
-    const { error, value } = schema.body
-      ? schema.validate(toValidate.body, { abortEarly: false })
-      : schema.validate(toValidate, { abortEarly: false });
 
     if (error) {
       // Format error messages
@@ -43,9 +50,13 @@ export const validate = (schema) => {
     }
 
     // Replace request data with validated and sanitized values
-    if (schema.body) req.body = value;
-    if (schema.params) req.params = value.params;
-    if (schema.query) req.query = value.query;
+    if (isMultiPartSchema) {
+      if (schema.body) req.body = value.body;
+      if (schema.params) req.params = value.params;
+      if (schema.query) req.query = value.query;
+    } else {
+      req.body = value;
+    }
 
     next();
   };

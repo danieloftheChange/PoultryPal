@@ -85,11 +85,14 @@ const SignUpPage = ({
     setLoading(true);
     setError(null);
     setSuccess(null);
-    
+
     try {
       // Omit passwordConfirm when sending data to the API
       const { passwordConfirm, ...submitData } = data;
-      
+
+      console.log('Submitting data:', submitData);
+      console.log('API URL:', getApiUrl('user/signup'));
+
       await axios.post(getApiUrl('user/signup'), submitData);
       
       setSuccess("Account created successfully! Redirecting to login page...");
@@ -105,11 +108,24 @@ const SignUpPage = ({
         'Sign up error:',
         error instanceof Error ? error.message : error
       );
-      
+
       // Set appropriate error message
       if (axios.isAxiosError(error) && error.response) {
+        // Log the full error response for debugging
+        console.error('Error response:', error.response.data);
+
         if (error.response.status === 400) {
-          setError("Email already in use. Please use a different email or login.");
+          // Check if it's a validation error with detailed messages
+          if (error.response.data?.errors && Array.isArray(error.response.data.errors)) {
+            const errorMessages = error.response.data.errors
+              .map((err: { field: string; message: string }) => err.message)
+              .join(', ');
+            setError(errorMessages);
+          } else if (error.response.data?.message) {
+            setError(error.response.data.message);
+          } else {
+            setError("Email already in use. Please use a different email or login.");
+          }
         } else {
           setError("An error occurred during sign up. Please try again later.");
         }
