@@ -179,7 +179,7 @@ function HousesPage() {
         throw err;
       }
     },
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 15000, // Standardized to 15 seconds
   });
 
   // Calculate statistics
@@ -498,7 +498,17 @@ function HousesPage() {
           {/* Data Table */}
           <div className="container mx-auto mt-4">
             {isLoading ? (
-              <div className="text-center py-8">Loading house data...</div>
+              <div className="space-y-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/3 animate-pulse"></div>
+                      <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                    </div>
+                    <div className="h-8 w-24 bg-gray-200 rounded animate-pulse"></div>
+                  </div>
+                ))}
+              </div>
             ) : isError ? (
               <div className="bg-red-50 p-4 rounded-md flex items-center">
                 <AlertTriangle className="h-6 w-6 text-red-500 mr-2" />

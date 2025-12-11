@@ -8,6 +8,8 @@ router.use(authMiddleware);
 router.get("/", batchController.getBatches);
 router.post("/", batchController.createBatch);
 router.get("/:id", batchController.getBatchById);
+router.get("/:id/availability", batchController.getBatchAvailability);
+router.get("/:id/history", batchController.getBirdCountHistory);
 router.patch("/:id", batchController.updateBatch);
 router.delete("/:id", batchController.deleteBatch);
 router.patch("/:id/counts", batchController.updateBirdCounts);

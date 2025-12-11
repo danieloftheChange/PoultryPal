@@ -23,7 +23,7 @@ import { z } from "zod";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Feather, Boxes, AlertTriangle, Edit, Archive, CheckCircle, TrendingDown, Skull, Heart } from "lucide-react";
+import { Feather, Boxes, AlertTriangle, Edit, Archive, CheckCircle, TrendingDown, Skull, Heart, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { ColumnDef } from "@tanstack/react-table";
@@ -45,6 +45,8 @@ type FormData = z.infer<typeof batchSchema>;
 // Enhanced Batch interface with calculated fields
 interface EnhancedBatch extends Batch {
   currentCount: number;
+  allocatedCount?: number;
+  unallocatedCount?: number;
 }
 
 // Bird Count Update Dialog Component
@@ -62,7 +64,25 @@ const BirdCountUpdateDialog = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const countUpdateSchema = z.object({
+    dead: z.coerce.number()
+      .int("Must be a whole number")
+      .min(0, "Cannot be negative")
+      .max(1000, "Value seems unrealistic - please verify"),
+    culled: z.coerce.number()
+      .int("Must be a whole number")
+      .min(0, "Cannot be negative")
+      .max(1000, "Value seems unrealistic - please verify"),
+    offlaid: z.coerce.number()
+      .int("Must be a whole number")
+      .min(0, "Cannot be negative")
+      .max(1000, "Value seems unrealistic - please verify"),
+    reason: z.string().optional(),
+    notes: z.string().max(500, "Notes must be less than 500 characters").optional(),
+  });
+
   const countForm = useForm({
+    resolver: zodResolver(countUpdateSchema),
     defaultValues: {
       dead: 0,
       culled: 0,
@@ -97,7 +117,25 @@ const BirdCountUpdateDialog = ({
       onSuccess();
     } catch (error) {
       console.error('Error updating bird counts:', error);
-      setError('Failed to update bird counts. Please try again.');
+
+      // Provide specific error messages based on error type
+      if (axios.isAxiosError(error) && error.response) {
+        const errorMsg = error.response.data.message || 'Failed to update bird counts';
+        const details = error.response.data;
+
+        // Show detailed error for exceeding original count
+        if (details.currentTotal !== undefined && details.originalCount !== undefined) {
+          setError(
+            `Cannot update: Total would be ${details.currentTotal + details.requestedAddition} but batch only has ${details.originalCount} birds originally.`
+          );
+        } else {
+          setError(errorMsg);
+        }
+      } else if (error instanceof Error) {
+        setError(`Error: ${error.message}`);
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -165,6 +203,41 @@ const BirdCountUpdateDialog = ({
               />
             </div>
 
+            <FormField
+              control={countForm.control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Reason (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Disease outbreak, Old age, etc." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={countForm.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <textarea
+                      className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Additional details about this update..."
+                      {...field}
+                    />
+                  </FormControl>
+                  <p className="text-xs text-gray-500">
+                    {field.value?.length || 0}/500 characters
+                  </p>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel
@@ -195,6 +268,52 @@ const safeToLocaleString = (value: any): string => {
   return isNaN(num) ? '0' : num.toLocaleString();
 };
 
+// Export functions
+const exportToCSV = (batches: EnhancedBatch[], filename: string = 'batches') => {
+  const headers = [
+    'Batch Name',
+    'Chicken Type',
+    'Original Count',
+    'Current Count',
+    'Dead',
+    'Culled',
+    'Offlaid',
+    'Allocated',
+    'Unallocated',
+    'Supplier',
+    'Arrival Date',
+    'Age at Arrival',
+    'Status'
+  ];
+
+  const rows = batches.map(batch => [
+    batch.name,
+    batch.chickenType,
+    batch.originalCount,
+    batch.currentCount,
+    batch.dead,
+    batch.culled,
+    batch.offlaid,
+    batch.allocatedCount || 0,
+    batch.unallocatedCount || batch.currentCount,
+    batch.supplier,
+    new Date(batch.arrivalDate).toLocaleDateString(),
+    batch.ageAtArrival,
+    batch.isArchived ? 'Archived' : 'Active'
+  ]);
+
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+  ].join('\n');
+
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${filename}_${new Date().toISOString().split('T')[0]}.csv`;
+  link.click();
+};
+
 function BatchPage() {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -203,6 +322,9 @@ function BatchPage() {
   const [selectedBatch, setSelectedBatch] = useState<EnhancedBatch | null>(null);
   const [archiveDialogOpen, setArchiveDialogOpen] = useState(false);
   const [countUpdateDialogOpen, setCountUpdateDialogOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFilterStart, setDateFilterStart] = useState("");
+  const [dateFilterEnd, setDateFilterEnd] = useState("");
   const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
   const user = storedUser ? JSON.parse(storedUser) : null;
 
@@ -333,7 +455,8 @@ function BatchPage() {
     queryKey: ['batches'],
     queryFn: async () => {
       try {
-        const res = await fetch(getApiUrl('batch'),
+        // OPTIMIZATION: Fetch batches with allocations in single request
+        const res = await fetch(getApiUrl('batch?includeAllocations=true'),
           {
             headers: {
               'Content-Type': 'application/json',
@@ -343,12 +466,15 @@ function BatchPage() {
 
         if (!res.ok) throw new Error('Failed to fetch batch data');
         const data = await res.json();
-        
-        // Calculate currentCount for each batch with safe handling
+
+        // Process data with safe handling
         return data.map((batch: any): EnhancedBatch => ({
           ...batch,
           currentCount: calculateCurrentCount(batch),
-          // Ensure all required fields exist with default values
+          allocatedCount: batch.allocatedCount || 0,
+          unallocatedCount: batch.unallocatedCount !== undefined
+            ? batch.unallocatedCount
+            : calculateCurrentCount(batch),
           dead: batch.dead || 0,
           culled: batch.culled || 0,
           offlaid: batch.offlaid || 0,
@@ -359,7 +485,7 @@ function BatchPage() {
         throw err;
       }
     },
-    refetchInterval: 30000,
+    refetchInterval: 15000, // Standardized to 15 seconds
   });
 
   // Calculate statistics with safe handling
@@ -383,12 +509,34 @@ function BatchPage() {
     return types;
   }, {} as Record<string, number>) || {};
 
-  // Filter batches based on selected type
+  // ENHANCED: Filter batches with search and date range
   const filteredBatches = batches.filter(batch => {
-    if (selectedFilter === "all") return true;
-    if (selectedFilter === "active") return !batch.isArchived;
-    if (selectedFilter === "archived") return batch.isArchived;
-    return batch.chickenType === selectedFilter;
+    // Filter by type/status
+    let typeMatch = true;
+    if (selectedFilter !== "all") {
+      if (selectedFilter === "active") typeMatch = !batch.isArchived;
+      else if (selectedFilter === "archived") typeMatch = batch.isArchived;
+      else typeMatch = batch.chickenType === selectedFilter;
+    }
+
+    // Filter by search term (name or supplier)
+    const searchMatch = !searchTerm ||
+      batch.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      batch.supplier?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Filter by date range
+    let dateMatch = true;
+    if (dateFilterStart || dateFilterEnd) {
+      const arrivalDate = new Date(batch.arrivalDate);
+      if (dateFilterStart && arrivalDate < new Date(dateFilterStart)) {
+        dateMatch = false;
+      }
+      if (dateFilterEnd && arrivalDate > new Date(dateFilterEnd)) {
+        dateMatch = false;
+      }
+    }
+
+    return typeMatch && searchMatch && dateMatch;
   });
 
   // Create custom columns with enhanced functionality and safe handling
@@ -474,14 +622,14 @@ function BatchPage() {
         const originalCount = batch.originalCount || 1; // Prevent division by zero
         const lossCount = (batch.dead || 0) + (batch.culled || 0) + (batch.offlaid || 0);
         const survivalPercentage = originalCount > 0 ? ((currentCount / originalCount) * 100) : 0;
-        
+
         let badgeColor = "bg-green-100 text-green-800";
         if (survivalPercentage < 50) {
           badgeColor = "bg-red-100 text-red-800";
         } else if (survivalPercentage < 80) {
           badgeColor = "bg-yellow-100 text-yellow-800";
         }
-        
+
         return (
           <div className="flex flex-col gap-1">
             <span className="font-medium">{safeToLocaleString(currentCount)}</span>
@@ -490,6 +638,24 @@ function BatchPage() {
                 {survivalPercentage.toFixed(1)}% remaining
               </Badge>
             )}
+          </div>
+        );
+      },
+    },
+    {
+      id: "allocation",
+      header: "Allocation",
+      cell: ({ row }) => {
+        const batch = row.original;
+        const allocatedCount = batch.allocatedCount || 0;
+        const unallocatedCount = batch.unallocatedCount !== undefined
+          ? batch.unallocatedCount
+          : batch.currentCount;
+
+        return (
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="text-blue-600">Allocated: {safeToLocaleString(allocatedCount)}</div>
+            <div className="text-gray-600">Unallocated: {safeToLocaleString(unallocatedCount)}</div>
           </div>
         );
       },
@@ -573,13 +739,23 @@ function BatchPage() {
               <p className="text-gray-500">Manage and monitor all your poultry batches</p>
             </div>
             {user?.role !== "Worker" && (
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button className="rounded-full bg-green-700 px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-green-800 flex items-center gap-2">
-                    <Boxes size={16} />
-                    Add New Batch
-                  </Button>
-                </DialogTrigger>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => exportToCSV(filteredBatches, 'batch-export')}
+                  className="flex items-center gap-2"
+                >
+                  <Download size={16} />
+                  Export CSV
+                </Button>
+
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="rounded-full bg-green-700 px-4 py-2 text-sm font-semibold text-white transition duration-200 hover:bg-green-800 flex items-center gap-2">
+                      <Boxes size={16} />
+                      Add New Batch
+                    </Button>
+                  </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>{editMode ? "Edit Batch" : "Add New Batch"}</DialogTitle> 
@@ -718,6 +894,7 @@ function BatchPage() {
                   </section>
                 </DialogContent>
               </Dialog>
+              </div>
             )}
           </div>
 
@@ -867,7 +1044,52 @@ function BatchPage() {
             </div>
           )}
 
-          {/* Filters */}
+          {/* Search and Advanced Filters */}
+          <div className="mb-4 space-y-3">
+            <div className="flex flex-col md:flex-row gap-3">
+              {/* Search bar */}
+              <div className="flex-1">
+                <Input
+                  placeholder="Search by batch name or supplier..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+
+              {/* Date range filters */}
+              <div className="flex gap-2">
+                <Input
+                  type="date"
+                  placeholder="From date"
+                  value={dateFilterStart}
+                  onChange={(e) => setDateFilterStart(e.target.value)}
+                  className="w-full md:w-auto"
+                />
+                <Input
+                  type="date"
+                  placeholder="To date"
+                  value={dateFilterEnd}
+                  onChange={(e) => setDateFilterEnd(e.target.value)}
+                  className="w-full md:w-auto"
+                />
+                {(searchTerm || dateFilterStart || dateFilterEnd) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setDateFilterStart("");
+                      setDateFilterEnd("");
+                    }}
+                  >
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Type/Status Filters */}
           <div className="flex flex-wrap gap-2 mb-4">
             <Button 
               variant={selectedFilter === "all" ? "default" : "outline"} 
@@ -905,9 +1127,18 @@ function BatchPage() {
           {/* Data Table */}
           <div className="container mx-auto mt-4">
             {isLoading ? (
-              <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-700 mx-auto mb-4"></div>
-                <p className="text-gray-500">Loading batch data...</p>
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+                    <div className="space-y-2 flex-1">
+                      <div className="h-4 bg-gray-200 rounded w-1/4 animate-pulse"></div>
+                      <div className="h-3 bg-gray-100 rounded w-1/2 animate-pulse"></div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="h-8 w-20 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : isError ? (
               <div className="bg-red-50 p-4 rounded-md flex items-center">
