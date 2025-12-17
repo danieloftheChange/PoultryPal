@@ -12,6 +12,16 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true },
     contact: { type: String, unique: true },
     password: { type: String, required: true },
+
+    // Password reset fields
+    passwordResetToken: { type: String },
+    passwordResetExpires: { type: Date },
+    passwordChangedAt: { type: Date },
+
+    // Email verification fields
+    emailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String },
+    emailVerificationExpires: { type: Date },
   },
   { timestamps: true }
 );

@@ -193,9 +193,30 @@ export const updateUserSchema = Joi.object({
     }),
 });
 
+// Forgot password validation schema
+export const forgotPasswordSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .lowercase()
+    .trim()
+    .required()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'string.empty': 'Email is required',
+      'any.required': 'Email is required',
+    }),
+});
+
+// Reset password validation schema
+export const resetPasswordSchema = Joi.object({
+  password: passwordSchema.required(),
+});
+
 export default {
   signupSchema,
   loginSchema,
   registerUserSchema,
   updateUserSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 };
