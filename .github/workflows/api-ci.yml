@@ -1,0 +1,173 @@
+name: API CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'API/**'
+      - '.github/workflows/api-ci.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'API/**'
+
+jobs:
+  lint:
+    name: Lint & Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: API/package-lock.json
+
+    - name: Install dependencies
+      run: cd API && npm ci
+
+    - name: Run ESLint
+      run: cd API && npm run lint
+      continue-on-error: true
+
+    - name: Check for console.log in source
+      run: |
+        if grep -r "console\.\(log\|error\|warn\)" API/src/ --include="*.js" --exclude="seedData.js"; then
+          echo "::error::console.log found in source code (use logger instead)"
+          exit 1
+        fi
+
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: API/package-lock.json
+
+    - name: Install dependencies
+      run: cd API && npm ci
+
+    - name: Run npm audit
+      run: cd API && npm audit --audit-level=high
+
+    - name: Check for secrets
+      run: |
+        if grep -r "password\s*=\s*['\"]" API/src/ --include="*.js"; then
+          echo "::warning::Potential hardcoded password found"
+        fi
+
+  test:
+    name: Test (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm'
+        cache-dependency-path: API/package-lock.json
+
+    - name: Install dependencies
+      run: cd API && npm ci
+
+    - name: Run tests with coverage
+      run: cd API && npm run test:ci
+      env:
+        NODE_ENV: test
+        MONGODB_URI: mongodb://localhost:27017/test
+        JWT_SECRET: test-jwt-secret-key-at-least-32-characters-long
+        JWT_REFRESH_SECRET: test-jwt-refresh-secret-key-at-least-32-chars
+        PORT: 3000
+
+    - name: Upload coverage to Codecov
+      if: matrix.node-version == '20.x'
+      uses: codecov/codecov-action@v3
+      with:
+        files: ./API/coverage/lcov.info
+        flags: api
+        name: api-coverage
+
+  build:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+    needs: [lint, security, test]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20.x'
+        cache: 'npm'
+        cache-dependency-path: API/package-lock.json
+
+    - name: Install dependencies
+      run: cd API && npm ci
+
+    - name: Verify production dependencies
+      run: cd API && npm ci --production
+
+    - name: Check migration status
+      run: cd API && npm run migrate:status || echo "No migrations to check"
+
+    - name: Verify environment template
+      run: |
+        if [ ! -f API/.env.example ]; then
+          echo "::error::.env.example file not found"
+          exit 1
+        fi
+
+    - name: Build success
+      run: echo "✅ Build completed successfully"
+
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to staging
+      run: |
+        echo "::notice::Staging deployment would run here"
+        echo "Deploy to staging environment"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to production
+      run: |
+        echo "::notice::Production deployment would run here"
+        echo "Deploy to production environment"

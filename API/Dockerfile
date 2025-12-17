@@ -1,21 +1,76 @@
-# Use an Alpine-based Node.js image
-FROM node:20-alpine
+# ===================================
+# Multi-stage Dockerfile for PoultryPal API
+# ===================================
 
-# Set the working directory in the container
+# -----------------------------------
+# Stage 1: Dependencies
+# -----------------------------------
+FROM node:20-alpine AS dependencies
+
+# Set working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json to install dependencies
+# Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm install
+# Install production dependencies only
+RUN npm ci --only=production && \
+    npm cache clean --force
 
-# Copy the rest of the application code
+# -----------------------------------
+# Stage 2: Build
+# -----------------------------------
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install all dependencies (including devDependencies for testing)
+RUN npm ci && \
+    npm cache clean --force
+
+# Copy source code
 COPY . .
 
-# Expose the port that the app runs on
+# Run tests
+RUN npm run test:ci
+
+# -----------------------------------
+# Stage 3: Production
+# -----------------------------------
+FROM node:20-alpine AS production
+
+# Install dumb-init for proper signal handling
+RUN apk add --no-cache dumb-init
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy production dependencies from dependencies stage
+COPY --from=dependencies --chown=nodejs:nodejs /app/node_modules ./node_modules
+
+# Copy application code
+COPY --chown=nodejs:nodejs . .
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
 EXPOSE 3000
 
-# Default command to run the app
-CMD ["npm", "run", "start"]
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/api/v1/alive', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"
+
+# Use dumb-init to handle signals properly
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application
+CMD ["node", "server.js"]
 

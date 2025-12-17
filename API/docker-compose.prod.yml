@@ -1,0 +1,112 @@
+# ===================================
+# Docker Compose - Production Environment
+# ===================================
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
+#   docker-compose -f docker-compose.prod.yml down
+#
+# Prerequisites:
+#   - Set environment variables in .env file
+#   - Configure proper secrets management
+#   - Set up SSL/TLS certificates
+#   - Configure reverse proxy (nginx/traefik)
+
+version: '3.8'
+
+services:
+  # MongoDB Database
+  mongodb:
+    image: mongo:7
+    container_name: poultrypal-mongodb-prod
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: poultrypal
+    volumes:
+      - mongodb_data:/data/db
+      - mongodb_config:/data/configdb
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - poultrypal-internal
+    command: --auth
+    healthcheck:
+      test: ["CMD", "mongosh", "-u", "${MONGO_ROOT_USERNAME}", "-p", "${MONGO_ROOT_PASSWORD}", "--eval", "db.adminCommand('ping')"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # PoultryPal API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: poultrypal-api-prod
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MONGODB_URI=mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/poultrypal?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - CORS_ORIGINS=${CORS_ORIGINS}
+      - FRONTEND_URL=${FRONTEND_URL}
+      - LOG_LEVEL=info
+    ports:
+      - "3000:3000"
+    networks:
+      - poultrypal-internal
+      - poultrypal-external
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/v1/alive', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  poultrypal-internal:
+    driver: bridge
+    internal: true
+  poultrypal-external:
+    driver: bridge
+
+volumes:
+  mongodb_data:
+    driver: local
+  mongodb_config:
+    driver: local

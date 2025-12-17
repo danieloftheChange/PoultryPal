@@ -1,4 +1,5 @@
 import Farm from "./farm.model.js";
+import logger from "../../config/logger.js";
 
 // Create a farm (only accessible by authenticated users)
 const createFarm = async (req, res) => {
@@ -33,7 +34,7 @@ const createFarm = async (req, res) => {
       farm: savedFarm
     });
   } catch (error) {
-    console.error("Error creating farm:", error);
+    logger.error("Error creating farm:", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error creating farm",
@@ -66,7 +67,7 @@ const getFarms = async (req, res) => {
     // Return as array for backwards compatibility
     res.status(200).json([farm]);
   } catch (error) {
-    console.error("Error retrieving farms:", error);
+    logger.error("Error retrieving farms:", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error retrieving farms",
@@ -110,7 +111,7 @@ const getFarm = async (req, res) => {
       farm
     });
   } catch (error) {
-    console.error("Error retrieving farm:", error);
+    logger.error("Error retrieving farm:", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error retrieving farm",
@@ -168,7 +169,7 @@ const updateFarm = async (req, res) => {
       farm: updatedFarm
     });
   } catch (error) {
-    console.error("Error updating farm:", error);
+    logger.error("Error updating farm:", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error updating farm",
@@ -212,7 +213,7 @@ const deleteFarm = async (req, res) => {
       message: "Farm deleted successfully"
     });
   } catch (error) {
-    console.error("Error deleting farm:", error);
+    logger.error("Error deleting farm:", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error deleting farm",

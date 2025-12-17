@@ -1,5 +1,6 @@
 import { Batch, BatchAllocation } from "./batch.model.js";
 import House from "../house/house.model.js";
+import logger from "../../config/logger.js";
 
 // Get all batches for the logged-in user's farm
 const getBatches = async (req, res) => {
@@ -281,7 +282,7 @@ const createBatchAllocation = async (req, res) => {
     // Don't modify the originalCount, but we could track allocations separately if needed
     res.status(201).json(allocation);
   } catch (error) {
-    console.error("Batch Allocation Error:", error);
+    logger.error("Batch Allocation Error", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
