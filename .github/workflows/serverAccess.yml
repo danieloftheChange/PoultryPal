@@ -4,9 +4,9 @@ name: Test Server Access
 on:
   workflow_dispatch:  # Manual trigger
   push:
-    branches: [ test, main ]  # Auto trigger on push to these branches
+    branches: [ test, production ]  # Auto trigger on push to these branches
   pull_request:
-    branches: [ main ]
+    branches: [ production ]
 
 jobs:
   test-server-connection:
