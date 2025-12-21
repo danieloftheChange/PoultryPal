@@ -1,5 +1,6 @@
 import Production from "./production.model.js";
 import { Batch } from "../batch/batch.model.js";
+import logger from "../../config/logger.js";
 
 // Get all production records for logged-in user's farm
 const getProduction = async (req, res) => {
@@ -39,7 +40,7 @@ const getProduction = async (req, res) => {
 
     res.status(200).json(enhancedProduction);
   } catch (error) {
-    console.error("Error getting production records:", error);
+    logger.error("Error getting production records:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -127,7 +128,7 @@ const createProduction = async (req, res) => {
 
     res.status(201).json(response);
   } catch (error) {
-    console.error("Error creating production record:", error);
+    logger.error("Error creating production record:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -174,7 +175,7 @@ const getProductionById = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error getting production record:", error);
+    logger.error("Error getting production record:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -267,7 +268,7 @@ const updateProduction = async (req, res) => {
 
     res.status(200).json(response);
   } catch (error) {
-    console.error("Error updating production record:", error);
+    logger.error("Error updating production record:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -303,7 +304,7 @@ const deleteProduction = async (req, res) => {
 
     res.status(200).json({ message: "Production record deleted successfully" });
   } catch (error) {
-    console.error("Error deleting production record:", error);
+    logger.error("Error deleting production record:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -374,7 +375,7 @@ const getProductionStats = async (req, res) => {
 
     res.status(200).json(stats);
   } catch (error) {
-    console.error("Error getting production statistics:", error);
+    logger.error("Error getting production statistics:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

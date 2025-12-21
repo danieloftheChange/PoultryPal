@@ -7,6 +7,8 @@ import {
   signupSchema,
   loginSchema,
   registerUserSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
 } from "../common/validators/user.validator.js";
 
 const router = express.Router();
@@ -209,5 +211,19 @@ router.get("/staff", authMiddleware, userController.getStaff);
 // router.delete("/:id", userController.deleteUser);
 
 router.post("/login", authLimiter, validate(loginSchema), userController.login);
+
+// Token refresh endpoint (uses cookie)
+router.post("/refresh", userController.refreshAccessToken);
+
+// Logout endpoint
+router.post("/logout", userController.logout);
+
+// Password reset endpoints
+router.post("/forgot-password", authLimiter, validate(forgotPasswordSchema), userController.forgotPassword);
+router.post("/reset-password/:token", authLimiter, validate(resetPasswordSchema), userController.resetPassword);
+
+// Email verification endpoints
+router.post("/send-verification", authMiddleware, userController.sendVerificationEmail);
+router.get("/verify-email/:token", userController.verifyEmail);
 
 export default router;

@@ -1,4 +1,5 @@
 import Diagnosis from "./diagnosis.model.js";
+import logger from "../../config/logger.js";
 
 const createDiagnosis = async (req, res) => {
   try {
@@ -26,7 +27,7 @@ const createDiagnosis = async (req, res) => {
       diagnosis: savedDiagnosis,
     });
   } catch (error) {
-    console.error("Error creating diagnosis:", error);
+    logger.error("Error creating diagnosis", { error: error.message, stack: error.stack });
     res
       .status(500)
       .json({ message: "Error creating diagnosis", error: error.message });
@@ -82,7 +83,7 @@ const getDiagnosisById = async (req, res) => {
       diagnosis,
     });
   } catch (error) {
-    console.error("Error fetching diagnosis:", error);
+    logger.error("Error fetching diagnosis", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error fetching diagnosis",
@@ -124,7 +125,7 @@ const updateDiagnosis = async (req, res) => {
       diagnosis: updatedDiagnosis,
     });
   } catch (error) {
-    console.error("Error updating diagnosis:", error);
+    logger.error("Error updating diagnosis", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error updating diagnosis",
@@ -163,7 +164,7 @@ const deleteDiagnosis = async (req, res) => {
       message: "Diagnosis deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting diagnosis:", error);
+    logger.error("Error deleting diagnosis", { error: error.message, stack: error.stack });
     res.status(500).json({
       success: false,
       message: "Error deleting diagnosis",

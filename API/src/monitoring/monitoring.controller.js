@@ -1,4 +1,5 @@
 import SensorData from "./monitoring.model.js";
+import logger from "../../config/logger.js";
 
 const getSensorDataForHouse = async (req, res) => {
   try {
@@ -32,7 +33,7 @@ const createSensorDataForHouse = async (req, res) => {
 
     res.status(201).json(sensorData);
   } catch (error) {
-    console.error("Error creating sensor data:", error);
+    logger.error("Error creating sensor data:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Internal server error" });
   }
 };

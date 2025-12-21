@@ -1,5 +1,6 @@
 import Formula from "./feed-formula.model.js";
 import axios from "axios";
+import logger from "../../config/logger.js";
 
 // Configuration for the optimization service
 const OPTIMIZER_SERVICE_URL = process.env.FEED_OPTIMIZER_URL || "http://feed-optimizer:8000";
@@ -24,7 +25,7 @@ const getFormulas = async (req, res) => {
 
     res.status(200).json(formulas);
   } catch (error) {
-    console.error("Error getting feed formulas:", error);
+    logger.error("Error getting feed formulas:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -55,7 +56,7 @@ const getFormulaById = async (req, res) => {
 
     res.status(200).json(formula);
   } catch (error) {
-    console.error("Error getting feed formula:", error);
+    logger.error("Error getting feed formula:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -100,7 +101,7 @@ const createFormula = async (req, res) => {
     
     res.status(201).json(savedFormula);
   } catch (error) {
-    console.error("Error creating feed formula:", error);
+    logger.error("Error creating feed formula:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -158,7 +159,7 @@ const updateFormula = async (req, res) => {
 
     res.status(200).json(updatedFormula);
   } catch (error) {
-    console.error("Error updating feed formula:", error);
+    logger.error("Error updating feed formula:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -190,7 +191,7 @@ const deleteFormula = async (req, res) => {
 
     res.status(200).json({ message: "Feed formula deleted successfully" });
   } catch (error) {
-    console.error("Error deleting feed formula:", error);
+    logger.error("Error deleting feed formula:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
@@ -237,7 +238,7 @@ const optimizeFormula = async (req, res) => {
       // Return the optimized formula
       res.status(200).json(optimizerResponse.data);
     } catch (error) {
-      console.error("Error calling optimization service:", error);
+      logger.error("Error calling optimization service:", { error: error.message, stack: error.stack });
       
       // Handle specific errors from the optimization service
       if (error.response) {
@@ -254,7 +255,7 @@ const optimizeFormula = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error("Error optimizing feed formula:", error);
+    logger.error("Error optimizing feed formula:", { error: error.message, stack: error.stack });
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };

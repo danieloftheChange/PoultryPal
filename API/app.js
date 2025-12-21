@@ -1,9 +1,9 @@
 import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
+import cookieParser from "cookie-parser";
 import cors from "cors";
 import logger, { requestLogger } from "./config/logger.js";
-import connectToMongoDB from "./config/db.js";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import swaggerOptions from "./config/swagger.js";
@@ -11,6 +11,8 @@ import { generalLimiter } from "./config/rateLimiter.js";
 import { getHelmetConfig } from "./config/helmet.config.js";
 import { enforceHTTPS } from "./config/httpsEnforcement.js";
 import { errorHandler, notFoundHandler } from "./config/errorHandler.js";
+import { requestIdMiddleware, responseTimeMiddleware, errorTrackingMiddleware } from "./config/requestTracking.js";
+import healthRoutes from "./src/health/health.routes.js";
 import farmRoutes from "./src/farm/farm.routes.js";
 import userRoutes from "./src/users/users.routes.js";
 import diagnosisRoutes from "./src/diagnosis/diagnosis.routes.js";
@@ -20,7 +22,6 @@ import batchRoutes from "./src/batch/batch.routes.js";
 import productionRoutes from "./src/production/production.routes.js";
 import monitoringRoutes from "./src/monitoring/monitoring.routes.js";
 
-const port = process.env.PORT || 3000;
 const app = express();
 
 // Trust proxy when behind reverse proxy (nginx, load balancer)
@@ -41,7 +42,12 @@ const corsOptions = {
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
 app.use(cors(corsOptions));
+
+// Request tracking middleware
+app.use(requestIdMiddleware);
+app.use(responseTimeMiddleware);
 
 // Request logging middleware
 app.use(requestLogger);
@@ -50,6 +56,9 @@ app.use(requestLogger);
 app.use('/api/', generalLimiter);
 
 const swaggerDocs = swaggerJsdoc(swaggerOptions);
+
+// Health check endpoints (no rate limiting, no auth)
+app.use("/api/v1", healthRoutes);
 
 app.use("/api/v1/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use("/api/v1/farm", farmRoutes);
@@ -65,33 +74,42 @@ app.use("/api/v1/monitoring", monitoringRoutes);
 // 404 handler - must be after all routes
 app.use(notFoundHandler);
 
+// Error tracking - before error handler
+app.use(errorTrackingMiddleware);
+
 // Global error handler - must be last
 app.use(errorHandler);
 
-// Connect to MongoDB and start the server
-connectToMongoDB()
-  .then(() => {
-    const server = app.listen(port, '0.0.0.0', () => {
-      logger.info(`Server is running on http://0.0.0.0:${port}`);
-      logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    });
+// Validate required environment variables
+const requiredEnvVars = [
+  'MONGODB_URI',
+  'JWT_SECRET',
+  'JWT_REFRESH_SECRET',
+  'NODE_ENV',
+  'PORT'
+];
 
-    // Handle uncaught exceptions and unhandled rejections
-    process.on('unhandledRejection', (err) => {
-      logger.error('UNHANDLED REJECTION! Shutting down...', { error: err });
-      server.close(() => {
-        process.exit(1);
-      });
-    });
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  logger.error('Missing required environment variables', { missing: missingEnvVars });
+  throw new Error(`Missing required environment variables: ${missingEnvVars.join(', ')}`);
+}
 
-    process.on('uncaughtException', (err) => {
-      logger.error('UNCAUGHT EXCEPTION! Shutting down...', { error: err });
-      process.exit(1);
-    });
-  })
-  .catch((error) => {
-    logger.error("Failed to start server due to MongoDB connection error:", { error });
-    process.exit(1);
-  });
+// Production-specific validation
+if (process.env.NODE_ENV === 'production') {
+  if (process.env.JWT_SECRET.length < 32) {
+    logger.error('JWT_SECRET too short in production');
+    throw new Error('JWT_SECRET must be at least 32 characters in production');
+  }
+  if (process.env.JWT_REFRESH_SECRET.length < 32) {
+    logger.error('JWT_REFRESH_SECRET too short in production');
+    throw new Error('JWT_REFRESH_SECRET must be at least 32 characters in production');
+  }
+  if (process.env.MONGODB_URI.includes('localhost')) {
+    logger.warn('MONGODB_URI uses localhost in production - ensure this is intentional');
+  }
+}
+
+logger.info('Environment validation passed');
 
 export default app;
