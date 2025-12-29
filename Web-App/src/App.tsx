@@ -9,8 +9,6 @@ import BatchPage from './pages/birds';
 import HousesPage from './pages/houses/houses';
 import HouseDetailPage from './pages/houses/houseDetails';
 import ImmunizationPage from './pages/immunization';
-import DiagnosisPage from './pages/diagnosis/diagnosis';
-import DiagnosisDetailPage from './pages/diagnosis/diagnosisDetails';
 import StaffPage from './pages/staff';
 import SettingsPage from './pages/settings';
 import ProductionPage from './pages/production';
@@ -31,8 +29,6 @@ function App() {
           <Route path="/birds" element={<BatchPage />} />
           <Route path="/houses" element={<HousesPage />} />
           <Route path="/house/:id" element={<HouseDetailPage />} />
-          <Route path="/diagnosis" element={<DiagnosisPage />} />
-          <Route path="/diagnosis/:id" element={<DiagnosisDetailPage />} />
           <Route path="/staff" element={<StaffPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/production" element={<ProductionPage />} />

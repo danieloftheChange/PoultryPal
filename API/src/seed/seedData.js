@@ -10,9 +10,7 @@ import { Batch, BatchAllocation } from '../batch/batch.model.js';
 import House from '../house/house.model.js';
 import Stock from '../stock/stock.model.js';
 import Production from '../production/production.model.js';
-import SensorData from '../monitoring/monitoring.model.js';
 import Immunization from '../immunization/immunization.model.js';
-import Diagnosis from '../diagnosis/diagnosis.model.js';
 import FeedFormula from '../feed-formula/feed-formula.model.js';
 
 // Database connection
@@ -59,9 +57,7 @@ const seedData = async () => {
     await House.deleteMany({});
     await Stock.deleteMany({});
     await Production.deleteMany({});
-    await SensorData.deleteMany({});
     await Immunization.deleteMany({});
-    await Diagnosis.deleteMany({});
     await FeedFormula.deleteMany({});
     console.log('Existing data cleared.');
 

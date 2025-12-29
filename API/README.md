@@ -26,14 +26,13 @@
 
 ## Overview
 
-The PoultryPal API is a comprehensive backend service designed to manage all aspects of poultry farm operations. It provides secure authentication, batch tracking, production monitoring, health diagnostics, and real-time analytics.
+The PoultryPal API is a comprehensive backend service designed to manage all aspects of poultry farm operations. It provides secure authentication, batch tracking, production monitoring, and real-time analytics.
 
 **Key Capabilities:**
 - User authentication with JWT dual-token system
 - Farm and batch management
 - Production tracking and analytics
-- Health monitoring and diagnostics
-- Real-time metrics and monitoring
+- Health monitoring
 - Comprehensive security features
 
 ## Features
@@ -341,11 +340,9 @@ API/
 │   │   ├── middlewares/  # Custom middleware
 │   │   └── validators/   # Input validation
 │   ├── batch/            # Batch management
-│   ├── diagnosis/        # Health diagnostics
 │   ├── farm/             # Farm management
 │   ├── health/           # Health check endpoints
 │   ├── house/            # House/shed management
-│   ├── monitoring/       # Monitoring endpoints
 │   ├── production/       # Production tracking
 │   ├── stock/            # Stock management
 │   └── users/            # User management & auth

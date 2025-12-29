@@ -6,7 +6,7 @@
 
 **BSSE 4105 | GROUP-9**
 
-PoultryPal is a comprehensive farm management system designed to help poultry farmers optimize operations, monitor bird health, manage inventory, and make data-driven decisions using AI-powered disease diagnosis.
+PoultryPal is a comprehensive farm management system designed to help poultry farmers optimize operations, monitor bird health, manage inventory, and make data-driven decisions.
 
 ---
 
@@ -33,9 +33,8 @@ PoultryPal is a comprehensive farm management system designed to help poultry fa
 - Batch Tracking - Monitor bird batches from arrival to sale
 - House Management - Track housing allocations and capacity
 - Production Monitoring - Real-time egg production and mortality tracking
-- Health Management - Vaccination schedules and disease diagnosis
+- Health Management - Vaccination schedules
 - Inventory Control - Stock management for feed, medication, and equipment
-- AI Disease Diagnosis - Image-based disease detection
 - Analytics Dashboard - Comprehensive reports and insights
 
 ### Security Features
