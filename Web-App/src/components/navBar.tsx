@@ -87,22 +87,10 @@ const Navbar = ({
       url: "#",
       items: [
         {
-          title: "Disease Diagnosis",
-          description: "AI-powered disease detection for early intervention",
-          icon: <Shield className="size-5 shrink-0" />,
-          url: "/diagnosis",
-        },
-        {
           title: "Production Tracking",
           description: "Monitor egg production and mortality rates efficiently",
           icon: <Book className="size-5 shrink-0" />,
           url: "/production",
-        },
-        {
-          title: "Environmental Monitoring",
-          description: "Track temperature, humidity, and other vital conditions",
-          icon: <Monitor className="size-5 shrink-0" />,
-          url: "/monitoring",
         },
       ],
     },

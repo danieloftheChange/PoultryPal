@@ -15,12 +15,10 @@ import { requestIdMiddleware, responseTimeMiddleware, errorTrackingMiddleware } 
 import healthRoutes from "./src/health/health.routes.js";
 import farmRoutes from "./src/farm/farm.routes.js";
 import userRoutes from "./src/users/users.routes.js";
-import diagnosisRoutes from "./src/diagnosis/diagnosis.routes.js";
 import houseRoutes from "./src/house/house.routes.js";
 import stockRoutes from "./src/stock/stock.routes.js";
 import batchRoutes from "./src/batch/batch.routes.js";
 import productionRoutes from "./src/production/production.routes.js";
-import monitoringRoutes from "./src/monitoring/monitoring.routes.js";
 
 const app = express();
 
@@ -63,12 +61,10 @@ app.use("/api/v1", healthRoutes);
 app.use("/api/v1/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use("/api/v1/farm", farmRoutes);
 app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/diagnosis", diagnosisRoutes);
 app.use("/api/v1/house", houseRoutes);
 app.use("/api/v1/stock", stockRoutes);
 app.use("/api/v1/batch", batchRoutes);
 app.use("/api/v1/production", productionRoutes);
-app.use("/api/v1/monitoring", monitoringRoutes);
 
 
 // 404 handler - must be after all routes

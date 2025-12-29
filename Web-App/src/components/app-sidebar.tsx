@@ -85,11 +85,6 @@ const fullNav = [
     icon: PlusCircle,
   },
   {
-    title: "Disease Diagnosis",
-    url: "/diagnosis",
-    icon: Search,
-  },
-  {
     title: "Staff",
     url: "/staff",
     icon: Users,
@@ -127,11 +122,6 @@ const workerNav = [
     title: "Immunization",
     url: "/immunization",
     icon: PlusCircle,
-  },
-  {
-    title: "Disease Diagnosis",
-    url: "/diagnosis",
-    icon: Search,
   },
 ]
 
